@@ -5,7 +5,7 @@ import glob
 from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 from sklearn import tree
-
+from pandas_profiling import ProfileReport
 
 path = os.getcwd()
 path = os.path.join(path, "Dataset/")
@@ -27,11 +27,13 @@ def binary_decision_tree(X):
     title = f.split("\\")[-1][26:-5]
     print(f"R² for {title}: ", clf.score(X_test, y_test))
 
+
 if __name__ == "__main__":
     main_df = []
     for f in excel_files:
         df = pd.read_excel(f)
-        binary_decision_tree(df)
-
-
+        # binary_decision_tree(df)
+        prof = ProfileReport(df)
+        prof.to_file(output_file='output.html')
+        break
 

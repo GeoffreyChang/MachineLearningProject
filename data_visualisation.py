@@ -19,7 +19,7 @@ def data_visual(df, save_fig):
     for i in range(1, 20):
         temp = "T" + str(i)
         try:
-            ax.plot(df.iloc[:, 0], df[temp], label=temp)
+            ax.plot(df.iloc[:, 0], df[temp], '-', label=temp)
         except KeyError:
             pass
     title = f.split("\\")[-1][26:-5]

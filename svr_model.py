@@ -15,6 +15,7 @@ folds = KFold(n_splits=10)
 if __name__ == "__main__":
     df = pd.read_excel("Dataset/Thermal expansion testing data 01.xlsx")
     df.drop(columns=df.columns[[0, 1]], axis=1, inplace=True)
+    df = (df - df.min()) / (df.max() - df.min())
     features = df.copy()
     target = df.iloc[:, -1]
     features.drop(columns=features.columns[[-1]], axis=1, inplace=True)
@@ -25,15 +26,16 @@ if __name__ == "__main__":
                                            target.iloc[[i for i in train_index]], target.iloc[[i for i in test_index]]
 
         # X_train, X_test, Y_train, Y_test = train_test_split(features, target, test_size=0.3)
-        scaler = MinMaxScaler(feature_range=(0, 1))
-        X_train = scaler.fit_transform(X_train)
-        X_train = pd.DataFrame(X_train)
-        X_test = scaler.fit_transform(X_test)
-        X_test = pd.DataFrame(X_test)
 
-        regressor = SVR(kernel='rbf')
-        regressor.fit(X_train, Y_train)
-        regressor.score(X_test, Y_test)
+        # scaler = MinMaxScaler(feature_range=(0, 1))
+        # X_train = scaler.fit_transform(X_train)
+        # X_train = pd.DataFrame(X_train)
+        # X_test = scaler.fit_transform(X_test)
+        # X_test = pd.DataFrame(X_test)
+
+        # regressor = SVR(kernel='rbf')
+        # regressor.fit(X_train, Y_train)
+        # regressor.score(X_test, Y_test)
 
         # Implement SVR with Hyper-Parameter Tuning
 

@@ -39,18 +39,20 @@ if __name__ == "__main__":
 
         # Implement SVR with Hyper-Parameter Tuning
 
-        # K = 15
-        # parameters = [
-        #     {'kernel': ['rbf'], 'gamma': [1e-4, 1e-3, 0.01, 0.1, 0.2, 0.5, 0.6, 0.9], 'C': [1, 10, 100, 1000, 10000]}]
-        # print("Tuning hyper-parameters")
-        # scorer = make_scorer(mean_squared_error, greater_is_better=False)
-        # svr = GridSearchCV(SVR(epsilon=0.01), parameters, cv=K, scoring=scorer)
-        # svr.fit(X_train, Y_train)
-        # print("Grid scores on training set:")
-        # means = svr.cv_results_['mean_test_score']
-        # stds = svr.cv_results_['std_test_score']
-        # for mean, std, params in zip(means, stds, svr.cv_results_['params']):
-        #     print("%0.3f (+/-%0.03f) for %r" % (mean, std * 2, params))
+        K = 15
+        parameters = [
+            {'kernel': ['rbf'],
+             'gamma': [1e-4, 1e-3, 0.01, 0.1, 0.2, 0.5, 0.6, 0.9],
+             'C': [1, 10, 100, 1000, 10000]}]
+        print("Tuning hyper-parameters")
+        scorer = make_scorer(mean_squared_error, greater_is_better=False)
+        svr = GridSearchCV(SVR(epsilon=0.01), parameters, cv=K, scoring=scorer)
+        svr.fit(X_train, Y_train)
+        print("Grid scores on training set:")
+        means = svr.cv_results_['mean_test_score']
+        stds = svr.cv_results_['std_test_score']
+        for mean, std, params in zip(means, stds, svr.cv_results_['params']):
+            print("%0.3f (+/-%0.03f) for %r" % (mean, std * 2, params))
 
         # model = SVR(kernel='rbf', C=1000, gamma=0.9)
         model = SVR(kernel='rbf')

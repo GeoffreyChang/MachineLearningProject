@@ -4,66 +4,120 @@ from keras.losses import BinaryCrossentropy
 from keras.models import Sequential
 from keras.optimizers import Adam
 from keras_preprocessing.sequence import pad_sequences
+from tensorflow import keras
+from keras import layers
 import pandas as pd
 from sklearn.model_selection import KFold
-from keras.datasets import imdb
 folds = KFold(n_splits=10)
+from keras import metrics
+QUALITY_THRESHOLD = 128
+BATCH_SIZE = 64
+SHUFFLE_BUFFER_SIZE = BATCH_SIZE * 2
 
-# import os
-# os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+
+def create_model():
+    input_layer = keras.Input(shape=(12, 1))
+
+    x = layers.Conv1D(
+        filters=32, kernel_size=3, strides=2, activation="relu", padding="same"
+    )(input_layer)
+    x = layers.BatchNormalization()(x)
+
+    x = layers.Conv1D(
+        filters=64, kernel_size=3, strides=2, activation="relu", padding="same"
+    )(x)
+    x = layers.BatchNormalization()(x)
+
+    x = layers.Conv1D(
+        filters=128, kernel_size=5, strides=2, activation="relu", padding="same"
+    )(x)
+    x = layers.BatchNormalization()(x)
+
+    x = layers.Conv1D(
+        filters=256, kernel_size=5, strides=2, activation="relu", padding="same"
+    )(x)
+    x = layers.BatchNormalization()(x)
+
+    x = layers.Conv1D(
+        filters=512, kernel_size=7, strides=2, activation="relu", padding="same"
+    )(x)
+    x = layers.BatchNormalization()(x)
+
+    x = layers.Conv1D(
+        filters=1024, kernel_size=7, strides=2, activation="relu", padding="same"
+    )(x)
+    x = layers.BatchNormalization()(x)
+
+    x = layers.Dropout(0.2)(x)
+
+    x = layers.Flatten()(x)
+
+    x = layers.Dense(4096, activation="relu")(x)
+    x = layers.Dropout(0.2)(x)
+
+    x = layers.Dense(
+        2048, activation="relu", kernel_regularizer=keras.regularizers.L2()
+    )(x)
+    x = layers.Dropout(0.2)(x)
+
+    x = layers.Dense(
+        1024, activation="relu", kernel_regularizer=keras.regularizers.L2()
+    )(x)
+    x = layers.Dropout(0.2)(x)
+    x = layers.Dense(
+        128, activation="relu", kernel_regularizer=keras.regularizers.L2()
+    )(x)
+    output_layer = layers.Dense(num_classes, activation="softmax")(x)
+
+    return keras.Model(inputs=input_layer, outputs=output_layer)
+
 
 if __name__ == "__main__":
     df = pd.read_excel("Dataset/Thermal expansion testing data 01.xlsx")
-
-    # Model configuration
-    additional_metrics = ['accuracy']
-    batch_size = 128
-    embedding_output_dims = 15
-    loss_function = BinaryCrossentropy()
-    max_sequence_length = 300
-    num_distinct_words = 5000
-    number_of_epochs = 10
-    optimizer = Adam()
-    validation_split = 0.40
-    verbosity_mode = 1
-
-    # Disable eager execution
-    tf.compat.v1.disable_eager_execution()
-
     df.drop(columns=df.columns[[0, 1]], axis=1, inplace=True)
-    df.columns = [''] * len(df.columns)
+
     features = df.copy()
     target = df.iloc[:, -1]
     features.drop(columns=features.columns[[-1]], axis=1, inplace=True)
     features = features.dropna(axis=1)
-
+    num_classes = len(features.columns)
     for train_index, test_index in folds.split(df):
         x_train, x_test, y_train, y_test = features.iloc[[i for i in train_index]], features.iloc[[i for i in test_index]], \
                                            target.iloc[[i for i in train_index]], target.iloc[[i for i in test_index]]
 
-        (x_train, y_train), (x_test, y_test) = imdb.load_data(num_words=num_distinct_words)
+        train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
+        test_dataset = tf.data.Dataset.from_tensor_slices((x_test, y_test))
 
-        # Pad all sequences
-        padded_inputs = pad_sequences(x_train, maxlen=max_sequence_length, value=0.0)
-        padded_inputs_test = pad_sequences(x_test, maxlen=max_sequence_length, value=0.0)
+        train_dataset = train_dataset.shuffle(SHUFFLE_BUFFER_SIZE).batch(BATCH_SIZE)
+        test_dataset = test_dataset.batch(BATCH_SIZE)
+        conv_model = create_model()
 
-        # Define the Keras model
-        model = Sequential()
-        model.add(Embedding(num_distinct_words, embedding_output_dims, input_length=max_sequence_length))
-        model.add(LSTM(10))
-        model.add(Dense(1, activation='sigmoid'))
+        epochs = 30
 
-        # Compile the model
-        model.compile(optimizer=optimizer, loss=loss_function, metrics=additional_metrics)
+        callbacks = [
+            keras.callbacks.ModelCheckpoint(
+                "best_model.h5", save_best_only=True, monitor="loss"
+            ),
+            keras.callbacks.ReduceLROnPlateau(
+                monitor="val_top_k_categorical_accuracy",
+                factor=0.2,
+                patience=2,
+                min_lr=0.000001,
+            ),
+        ]
 
-        # Give a summary
-        model.summary()
+        optimizer = keras.optimizers.Adam(amsgrad=True, learning_rate=0.001)
+        loss = keras.losses.CategoricalCrossentropy()
 
-        # Train the model
-        history = model.fit(padded_inputs, y_train, batch_size=batch_size, epochs=number_of_epochs, verbose=verbosity_mode,
-                            validation_split=validation_split)
+        conv_model.compile(
+            optimizer=optimizer,
+            loss=loss,
+            metrics=[tf.keras.metrics.RootMeanSquaredError()],
+        )
 
-        # Test the model after training
-        test_results = model.evaluate(padded_inputs_test, y_test, verbose=False)
-        print(f'Test results - Loss: {test_results[0]} - Accuracy: {100 * test_results[1]}%')
-        break
+        conv_model_history = conv_model.fit(
+            train_dataset,
+            epochs=epochs,
+            callbacks=callbacks,
+            validation_data=test_dataset
+        )

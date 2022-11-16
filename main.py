@@ -70,7 +70,6 @@ def ml_model(X):
 
 
 if __name__ == "__main__":
-    main_df = []
     for i, f in enumerate(excel_files):
         df = pd.read_excel(f)
         ml_model(df)

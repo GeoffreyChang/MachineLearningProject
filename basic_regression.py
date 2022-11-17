@@ -44,7 +44,7 @@ if __name__ == "__main__":
 
         score = r2_score(y_test, y_hat)
         print("R square: %.3f" % score)
-        z_plot_comparison(y_hat, y_test, score)
+        z_plot_comparison(y_hat, y_test)
 
         t1_model.save('partly_trained.tf')
         del t1_model

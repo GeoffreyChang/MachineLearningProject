@@ -92,4 +92,7 @@ if __name__ == "__main__":
         boxplot(data, save_plots)
         heatmap(data, save_plots)
 
+    files = read_all_files()
+    files[0].corrwith(files[1], axis=0)
+
 

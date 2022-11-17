@@ -19,23 +19,23 @@ if __name__ == "__main__":
     files = read_all_files()
     # for df in files:
     df = pd.read_excel("Dataset/Thermal expansion testing data 07.xlsx")
+    df = df.sample(frac=1, random_state=123)
     features, target = get_features_and_target(df)
-
     # print(np.mean(cross_val_score(Ridge(alpha=1.0), features, target, cv=10)))
     r_scores = []
     for train_index, test_index in folds.split(df):
-        x_train, x_test, y_train, _ = features.iloc[[i for i in train_index]], \
+        x_train, x_test, y_train, y_test = features.iloc[[i for i in train_index]], \
                                            features.iloc[[i for i in test_index]], \
                                            target.iloc[[i for i in train_index]], \
                                            target.iloc[[i for i in test_index]]
         model = Ridge(alpha=1.0)
         model.fit(x_train, y_train)
 
-
-        df2 = read_file_no(9)
-        features2, target2 = get_features_and_target(df2)
-        y_hat = model.predict(features2)
-        y_test = target2
+        #
+        # df2 = read_file_no(9)
+        # features2, target2 = get_features_and_target(df2)
+        y_hat = model.predict(y_test)
+        # y_test = target2
 
         # Testing
         # y_hat = model.predict(x_test)

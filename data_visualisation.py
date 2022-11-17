@@ -3,11 +3,7 @@ import os
 import glob
 import pandas as pd
 import seaborn as sns
-from statsmodels.stats.outliers_influence import variance_inflation_factor
-
-path = os.getcwd()
-path = os.path.join(path, "dataset/")
-excel_files = glob.glob(os.path.join(path, "*.xlsx"))
+from helper_functions import *
 
 
 def data_visual(df, save_fig):
@@ -15,17 +11,15 @@ def data_visual(df, save_fig):
         Basic visualisation of the given dataset
     """
     fg, ax = plt.subplots(figsize=(15, 10))
-
-    for i in range(1, 20):
+    for i in range(1, 15):
         temp = "T" + str(i)
         try:
-            ax.plot(df.iloc[:, 0], df[temp], '-', label=temp)
+            ax.plot(df["TIME"], df[temp], '-', label=temp)
         except KeyError:
             pass
-    title = f.split("\\")[-1][26:-5]
-    plt.title(f'{title}')
-    ax.set_xlabel('Time')
-    ax.set_ylabel('Temperature')
+    ax.set_title(f'Basic Visual of {title}', fontsize=26)
+    plt.xlabel('Time', fontsize=20, labelpad=20)
+    plt.ylabel('Temperature', fontsize=20, labelpad=20)
 
     ax2 = ax.twinx()
     ax2.plot(df.iloc[:, 0], df["Z"], 'k--', label="Z")
@@ -38,32 +32,64 @@ def data_visual(df, save_fig):
         plt.savefig(f'graphs/{title}')
     else:
         fg.show()
+    plt.close()
 
 def boxplot(df, save_fig):
     """
         boxplot helps us find any outliers, if available
     """
-    df.drop(columns=df.columns[[0, 1, -1]], axis=1, inplace=True)
-
+    df = df.drop(["TIME", "S", "Z"], axis=1)
+    plt.figure()
     bp = df.boxplot()
-    title = f.split("\\")[-1][26:-5]
-    bp.set_title(f'{title}')
+    bp.set_title(f'Boxplot for {title}', fontsize=15)
     bp.set_xlabel("Variable")
     bp.set_ylabel("Temperature")
 
     if save_fig:
         print(f"boxplot_{title} saved")
-        plt.savefig(f'graphs/boxplot_{title}')
+        plt.savefig(f'graphs/{title}_boxplot')
     else:
         plt.show()
+    plt.close()
+
+def heatmap(df, save_fig):
+    """
+        Heatmap helps us find correlation between variables
+    """
+    plt.figure()
+    sns.set(font_scale=0.6)
+    df = df.drop(["TIME", "S"], axis=1)
+    corr = df.corr()
+
+    plt.title(f'Heatmap for {title}', fontsize=15)
+    sns.heatmap(corr, annot=True, cmap='coolwarm')
+    if save_fig:
+        print(f"heatmap_{title} saved")
+        plt.savefig(f'graphs/{title}_heatmap')
+    else:
+        plt.show()
+    plt.close()
+
 
 if __name__ == "__main__":
-    for f in excel_files:
-        data = pd.read_excel(f)
-        # Plot style
-        plt.style.use('ggplot')
+    # Plot style
+    plt.style.use('ggplot')
+    # to save as png
+    save_plots = False
+    # plot individual datasets or entire dataset
+    individual = False
 
-        # to save as png
-        save_plots = False
-        data_visual(data, save_plots)
+    if individual:
+        files = read_all_files()
+        for k, data in enumerate(files):
+            title = f"dataset_{k + 1}"
+            data_visual(data, save_plots)
+            boxplot(data, save_plots)
+            heatmap(data, save_plots)
+    else:
+        data = entire_dataset()
+        title = "All Datasets combined"
         boxplot(data, save_plots)
+        heatmap(data, save_plots)
+
+

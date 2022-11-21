@@ -19,12 +19,11 @@ def entire_dataset():
     return pd.concat(read_all_files())
 
 def get_features_and_target(df):
-    df.drop(columns=df.columns[[0, 1]], axis=1, inplace=True)
+    df.drop(["TIME", "S"], axis=1, inplace=True)
     df = df.dropna()
     features = df.copy()
-    target = df.iloc[:, -1]
-    features.drop(columns=features.columns[[-1]], axis=1, inplace=True)
-
+    target = df["Z"]
+    features.drop(["Z"], axis=1, inplace=True)
     return features, target
 
 def read_file_no(n):
@@ -37,18 +36,10 @@ def read_file_no(n):
 
 def z_plot_comparison(predicted, real):
     plt.style.use('ggplot')
-    # plt.title("R^2 Value: %.3f" % r_val)
-    # plt.plot(predicted, 'r-', label='predicted')
-    # plt.plot(real, 'k-', label='real')
-    # plt.legend()
-    # plt.show()
     fig, ax = plt.subplots()
     ax.plot(real, predicted, 'k.')
-    ax.plot([0, 80], [0, 80], 'r--')
+    ax.plot([real.min(), real.max()], [real.min(), real.max()], 'r--')
     ax.set_xlabel('Actual')
     ax.set_ylabel('Predicted')
     ax.set_title('R2: {:.3f}'.format(r2_score(real, predicted)))
     plt.show()
-
-def retrain_model(model, X, y):
-    pass

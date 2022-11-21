@@ -1,10 +1,8 @@
 import matplotlib.pyplot as plt
-import os
-import glob
-import pandas as pd
 import seaborn as sns
 from helper_functions import *
-
+from scipy import stats
+import numpy as np
 
 def data_visual(df, save_fig):
     """
@@ -38,12 +36,18 @@ def boxplot(df, save_fig):
     """
         boxplot helps us find any outliers, if available
     """
-    df = df.drop(["TIME", "S", "Z"], axis=1)
-    plt.figure()
-    bp = df.boxplot()
-    bp.set_title(f'Boxplot for {title}', fontsize=15)
-    bp.set_xlabel("Variable")
+    features, target = get_features_and_target(df)
+
+    fig, axes = plt.subplots(1,2,figsize=(10,5))
+    fig.tight_layout(pad=4)
+    bp = features.boxplot(ax=axes[0])
+    bp.set_title(f'Boxplots for {title}', fontsize=15)
+    bp.set_xlabel("Features")
     bp.set_ylabel("Temperature")
+
+    bp = target.plot.box(ax=axes[1])
+    bp.set_xlabel("Target")
+    bp.set_ylabel("Z")
 
     if save_fig:
         print(f"boxplot_{title} saved")
@@ -83,16 +87,14 @@ if __name__ == "__main__":
         files = read_all_files()
         for k, data in enumerate(files):
             title = f"dataset_{k + 1}"
-            data_visual(data, save_plots)
+            # data_visual(data, save_plots)
             boxplot(data, save_plots)
-            heatmap(data, save_plots)
+            # heatmap(data, save_plots)
     else:
         data = entire_dataset()
         title = "All Datasets combined"
         boxplot(data, save_plots)
         heatmap(data, save_plots)
 
-    files = read_all_files()
-    files[0].corrwith(files[1], axis=0)
 
 

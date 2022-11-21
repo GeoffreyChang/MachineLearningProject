@@ -4,35 +4,44 @@ import tensorflow as tf
 from keras.layers import Dense, LSTM
 from keras.models import Sequential
 from sklearn.model_selection import KFold
+from helper_functions import *
+import numpy as np
 
 folds = KFold(n_splits=10)
 
+def build_and_compile_model(norm):
+    model = tf.keras.Sequential([
+        norm,
+        tf.keras.layers.LSTM(64, activation='relu'),
+        tf.keras.layers.Dense(64, activation='relu'),
+        tf.keras.layers.Dense(64),
+        tf.keras.layers.Dense(1)
+    ])
+
+    model.compile(loss='mean_absolute_error',
+                optimizer=tf.keras.optimizers.Adam(0.001))
+    return model
+
+
 if __name__ == "__main__":
-    df = pd.read_excel("Dataset/Thermal expansion testing data 01.xlsx")
-    df = (df - df.min()) / (df.max() - df.min())
-    df.drop(columns=df.columns[[0, 1]], axis=1, inplace=True)
-    features = df.copy()
-    target = df.iloc[:, -1]
-    features.drop(columns=features.columns[[-1]], axis=1, inplace=True)
-    features = features.dropna(axis=1)
-
-
-
-
-
+    df = read_file_no(1)
+    normalizer = tf.keras.layers.Normalization(axis=-1)
+    df = df.sample(frac=1, random_state=1)
+    features, target = get_features_and_target(df)
+    scores = []
     for train_index, test_index in folds.split(df):
-        x_train, x_test, y_train, y_test = features.iloc[[i for i in train_index]], features.iloc[[i for i in test_index]], \
-                                           target.iloc[[i for i in train_index]], target.iloc[[i for i in test_index]]
+        x_train, x_test, y_train, y_test = features.iloc[train_index], \
+                                           features.iloc[test_index], \
+                                           target.iloc[train_index], \
+                                           target.iloc[test_index]
         tf.keras.backend.clear_session()
-        model = Sequential()
-        model.add(LSTM(50, activation='relu', input_shape=(12, 1)))
-        model.add(Dense(1))
-        model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
-        model.summary()
+        model_lstm = build_and_compile_model(normalizer)
 
-        model.fit(x_train, y_train, epochs=5, verbose=1)
+        model_lstm.fit(x_train, y_train, epochs=100, verbose=1)
 
-        print("Evaluate on test data")
-        results = model.evaluate(x_test, y_test)
-        print("test loss, test acc:", results)
-        break
+        y_hat = model_lstm.predict(y_test).flatten()
+        score = r2_score(y_test, y_hat)
+        scores.append(score)
+        print("R square: %.3f" % score)
+        z_plot_comparison(y_hat, y_test)
+    print(np.mean(scores))

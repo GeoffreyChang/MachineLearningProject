@@ -19,8 +19,7 @@ def entire_dataset():
     return pd.concat(read_all_files())
 
 def get_features_and_target(df):
-    df.drop(["TIME", "S"], axis=1, inplace=True)
-    df = df.dropna()
+    df = df.drop(["TIME", "S"], axis=1)
     features = df.copy()
     target = df["Z"]
     features.drop(["Z"], axis=1, inplace=True)

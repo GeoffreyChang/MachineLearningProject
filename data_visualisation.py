@@ -4,7 +4,7 @@ from helper_functions import *
 from scipy import stats
 import numpy as np
 
-def data_visual(df, save_fig):
+def data_visual(df, title, save_fig):
     """
         Basic visualisation of the given dataset
     """
@@ -32,7 +32,7 @@ def data_visual(df, save_fig):
         fg.show()
     plt.close()
 
-def boxplot(df, save_fig):
+def boxplot_visual(df, title, save_fig):
     """
         boxplot helps us find any outliers, if available
     """
@@ -56,7 +56,7 @@ def boxplot(df, save_fig):
         plt.show()
     plt.close()
 
-def heatmap(df, save_fig):
+def heatmap(df, title, save_fig):
     """
         Heatmap helps us find correlation between variables
     """
@@ -86,15 +86,15 @@ if __name__ == "__main__":
     if individual:
         files = read_all_files()
         for k, data in enumerate(files):
-            title = f"dataset_{k + 1}"
-            # data_visual(data, save_plots)
-            boxplot(data, save_plots)
-            # heatmap(data, save_plots)
+            tt = f"dataset_{k + 1}"
+            # data_visual(data, tt, save_plots)
+            boxplot_visual(data, tt, save_plots)
+            # heatmap(data, tt, save_plots)
     else:
         data = entire_dataset()
-        title = "All Datasets combined"
-        boxplot(data, save_plots)
-        heatmap(data, save_plots)
+        tt = "All Datasets Combined"
+        boxplot_visual(data, tt, save_plots)
+        heatmap(data, tt, save_plots)
 
 
 

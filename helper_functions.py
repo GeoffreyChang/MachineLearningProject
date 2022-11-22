@@ -42,3 +42,38 @@ def z_plot_comparison(predicted, real):
     ax.set_ylabel('Predicted')
     ax.set_title('R2: {:.3f}'.format(r2_score(real, predicted)))
     plt.show()
+
+def find_best_features(df):
+    try:
+        df = df.drop(["TIME", "S"], axis=1)
+    except KeyError:
+        pass
+
+    priority_queue = []
+    names = df.corr()["Z"].sort_values(ascending=False).index
+    corr = df.corr()["Z"].sort_values(ascending=False)
+    for n, c in zip(names, corr):
+        if c >= 0.4:
+            priority_queue.append(n)
+
+    priority_queue.pop(0)
+    selected_features = []
+    discarded_features = []
+    for i, col in enumerate(df.columns[:-1]):
+        if col not in discarded_features:
+            corr = list(df.corr()[col])
+            names = list(df.corr().index)
+            corr.pop(i), names.pop(i)
+            high_corr = [col]
+            for n, c in zip(names, corr):
+                if c >= 0.9 and n != "Z" and n not in discarded_features:
+                    high_corr.append(n)
+            for stuff in priority_queue:
+                if stuff in high_corr and stuff:
+                    if stuff in selected_features:
+                        pass
+                    else:
+                        selected_features.append(high_corr.pop(high_corr.index(stuff)))
+                    break
+            discarded_features.extend(high_corr)
+    return selected_features

@@ -20,6 +20,7 @@ def entire_dataset():
 
 def get_features_and_target(df):
     df = df.drop(["TIME", "S"], axis=1)
+    df = df.dropna()
     features = df.copy()
     target = df["Z"]
     features.drop(["Z"], axis=1, inplace=True)

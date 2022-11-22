@@ -11,7 +11,7 @@ if __name__ == "__main__":
     normalizer.adapt(np.array(features))
 
 
-    # Linear Regression Model - Use single varialbe "T1" to predict Z axis
+    # Linear Regression Model - Use single variable "T1" to predict Z axis
     t1 = np.array(features['T1'])
 
     t1_normalizer = keras.layers.Normalization(input_shape=[1, ], axis=None)

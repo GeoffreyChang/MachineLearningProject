@@ -81,20 +81,22 @@ if __name__ == "__main__":
     # to save as png
     save_plots = False
     # plot individual datasets or entire dataset
-    individual = False
+    individual = True
 
     if individual:
         files = read_all_files()
         for k, data in enumerate(files):
             tt = f"dataset_{k + 1}"
+            print(f"Best Features for {tt}: {find_best_features(data)}")
             # data_visual(data, tt, save_plots)
             boxplot_visual(data, tt, save_plots)
             # heatmap(data, tt, save_plots)
     else:
         data = entire_dataset()
         tt = "All Datasets Combined"
-        boxplot_visual(data, tt, save_plots)
+        print(f"Best Features for {tt}: {find_best_features(data)}")
         heatmap(data, tt, save_plots)
+
 
 
 

@@ -78,3 +78,6 @@ def find_best_features(df):
                     break
             discarded_features.extend(high_corr)
     return selected_features
+
+def normalize_df(df):
+    return (df - df.min()) / (df.max() - df.min())

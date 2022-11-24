@@ -31,6 +31,8 @@ if __name__ == "__main__":
     df = df.sample(frac=1, random_state=1)
     features, target = get_features_and_target(df)
     scores = []
+    predicted_overall = []
+    real_overall = []
     for train_index, test_index in folds.split(features):
         x_train, x_test, y_train, y_test = features.iloc[train_index], \
                                            features.iloc[test_index], \
@@ -49,8 +51,12 @@ if __name__ == "__main__":
         model_lstm.fit(x_train, y_train, epochs=10, verbose=1)
 
         y_hat = model_lstm.predict(x_test).flatten()
+        predicted_overall.append(y_hat)
+        real_overall.append(y_test)
         score = r2_score(y_test, y_hat)
         scores.append(score)
         print("R square: %.3f" % score)
         z_plot_comparison(y_hat, y_test)
+
+    z_plot_all(predicted_overall, real_overall)
     print(np.mean(scores))

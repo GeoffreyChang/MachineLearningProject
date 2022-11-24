@@ -1,5 +1,7 @@
 import os
 import glob
+
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score
@@ -35,6 +37,13 @@ def read_file_no(n):
     return df
 
 def z_plot_comparison(predicted, real):
+    """
+    Plots predicted vs real values of Z
+
+    param predicted: list of predicted values
+    param real: list of true values
+    return: None
+    """
     plt.style.use('ggplot')
     fig, ax = plt.subplots()
     ax.plot(real, predicted, 'k.')
@@ -42,6 +51,26 @@ def z_plot_comparison(predicted, real):
     ax.set_xlabel('Actual')
     ax.set_ylabel('Predicted')
     ax.set_title('R2: {:.3f}'.format(r2_score(real, predicted)))
+    plt.show()
+
+def z_plot_all(predicted, real):
+    """
+    Plots all predicted vs real values of Z
+    :param predicted: list of lists of predicted values
+    :param real: list of lists of true values
+    :return: None
+    """
+    plt.style.use('ggplot')
+    fig, ax = plt.subplots()
+    ax.plot([real[0].min(), real[0].max()], [real[0].min(), real[0].max()], 'r--')
+    overall_score = []
+    for i, (r, p) in enumerate(zip(real, predicted)):
+        ax.plot(r, p, '.', alpha=0.5, label=f'Fold {i+1}')
+        overall_score.append(r2_score(r, p))
+    ax.set_xlabel('Actual')
+    ax.set_ylabel('Predicted')
+    ax.legend()
+    ax.set_title('R2: {:.3f}'.format(np.mean(overall_score)))
     plt.show()
 
 def find_best_features(df):

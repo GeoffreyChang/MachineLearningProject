@@ -4,18 +4,18 @@ import numpy as np
 from keras import layers
 import keras
 
-folds = KFold(n_splits=6)
+folds = KFold(n_splits=10)
 
 
 if __name__ == "__main__":
     df = read_file_no(2)
     df = normalize_df(df)
+    # df = series_to_supervised(df, 1, 1)
     df = df.sample(frac=1, random_state=1)
     features, target = get_features_and_target(df)
     scores = []
     predicted_overall = []
     real_overall = []
-
     for train_index, test_index in folds.split(features):
         x_train, x_test, y_train, y_test = features.iloc[train_index], \
                                            features.iloc[test_index], \
@@ -42,6 +42,5 @@ if __name__ == "__main__":
         # residuals_plot(y_hat, y_test)
         # break
 
-
-    z_plot_all(predicted_overall, real_overall)
+    z_plot_all(predicted_overall, real_overall, False)
     print(np.mean(scores))

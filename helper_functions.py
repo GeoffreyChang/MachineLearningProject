@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score
-
+import seaborn as sns
 
 def read_all_files():
     path = os.getcwd()
@@ -21,11 +21,7 @@ def entire_dataset():
     return pd.concat(read_all_files())
 
 def get_features_and_target(df):
-    df = df.drop(["TIME", "S"], axis=1)
-    df = df.dropna()
-    features = df.copy()
-    target = df["Z"]
-    features.drop(["Z"], axis=1, inplace=True)
+    features, target = df.iloc[:,:-1], df["Z"]
     return features, target
 
 def read_file_no(n):
@@ -46,27 +42,37 @@ def z_plot_comparison(predicted, real):
     """
     plt.style.use('ggplot')
     fig, ax = plt.subplots()
-    ax.plot(real, predicted, 'k.')
+    ax.plot(real, predicted, 'k.', alpha=0.5)
     ax.plot([real.min(), real.max()], [real.min(), real.max()], 'r--')
     ax.set_xlabel('Actual')
     ax.set_ylabel('Predicted')
     ax.set_title('R2: {:.3f}'.format(r2_score(real, predicted)))
     plt.show()
 
-def z_plot_all(predicted, real):
+def z_plot_all(predicted, real, split=True):
     """
     Plots all predicted vs real values of Z
     :param predicted: list of lists of predicted values
     :param real: list of lists of true values
+    :param split: if True, plots each k-fold separately
     :return: None
     """
     plt.style.use('ggplot')
     fig, ax = plt.subplots()
-    ax.plot([real[0].min(), real[0].max()], [real[0].min(), real[0].max()], 'r--')
-    overall_score = []
-    for i, (r, p) in enumerate(zip(real, predicted)):
-        ax.plot(r, p, '.', alpha=0.5, label=f'Fold {i+1}')
-        overall_score.append(r2_score(r, p))
+
+    if split:
+        overall_score = []
+        for i, (r, p) in enumerate(zip(real, predicted)):
+            ax.plot(r, p, '.', alpha=0.5, label=f'Fold {i+1}')
+            overall_score.append(r2_score(r, p))
+            ax.plot([r.min(), r.max()], [r.min(), r.max()], 'r-')
+    else:
+        real_all = [inner for outer in real for inner in outer]
+        predicted_all = [inner for outer in predicted for inner in outer]
+        ax.plot(real_all, predicted_all, 'k.', alpha=0.5)
+        overall_score = r2_score(real_all, predicted_all)
+        ax.plot([min(real_all), max(real_all)], [min(real_all), max(real_all)], 'r--')
+
     ax.set_xlabel('Actual')
     ax.set_ylabel('Predicted')
     ax.legend()
@@ -110,3 +116,47 @@ def find_best_features(df):
 
 def normalize_df(df):
     return (df - df.min()) / (df.max() - df.min())
+
+def residuals_plot(predicted, real):
+    plt.style.use('ggplot')
+    fig, ax = plt.subplots()
+    residual = predicted - real
+    sns.residplot(x = predicted, y = residual, data = None, scatter_kws={'color': 'r',
+   'alpha': 0.5}, ax=ax)
+    ax.set_xlabel('Predicted Value')
+    ax.set_ylabel('Residuals')
+    plt.show()
+
+def series_to_supervised(data, n_in=1, n_out=1, drop_nan=True):
+     """
+     Frame a time series as a supervised learning dataset.
+     Arguments:
+     data: Sequence of observations as a list or NumPy array.
+     n_in: Number of lag observations as input (X).
+     n_out: Number of observations as output (y).
+     drop_nan: Boolean whether to drop rows with NaN values.
+     Returns:
+     Pandas DataFrame of series framed for supervised learning.
+     """
+     data = data.transpose()
+     n_vars = 1 if type(data) is list else data.shape[1]
+     df = pd.DataFrame(data)
+     cols, names = list(), list()
+     # input sequence (t-n, ... t-1)
+     for i in range(n_in, 0, -1):
+         cols.append(df.shift(i))
+         names += [('var%d(t-%d)' % (j+1, i)) for j in range(n_vars)]
+     # forecast sequence (t, t+1, ... t+n)
+     for i in range(0, n_out):
+        cols.append(df.shift(-i))
+        if i == 0:
+            names += [('var%d(t)' % (j+1)) for j in range(n_vars)]
+        else:
+            names += [('var%d(t+%d)' % (j+1, i)) for j in range(n_vars)]
+     # put it all together
+     agg = pd.concat(cols, axis=1)
+     agg.columns = names
+     # drop rows with NaN values
+     if drop_nan:
+        agg.dropna(inplace=True)
+     return agg.transpose()

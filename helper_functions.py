@@ -32,24 +32,7 @@ def read_file_no(n):
     df.rename(columns={df.columns[0]: 'TIME', df.columns[1]: 'S'}, inplace=True)
     return df
 
-def z_plot_comparison(predicted, real):
-    """
-    Plots predicted vs real values of Z
-
-    param predicted: list of predicted values
-    param real: list of true values
-    return: None
-    """
-    plt.style.use('ggplot')
-    fig, ax = plt.subplots()
-    ax.plot(real, predicted, 'k.', alpha=0.5)
-    ax.plot([real.min(), real.max()], [real.min(), real.max()], 'r--')
-    ax.set_xlabel('Actual')
-    ax.set_ylabel('Predicted')
-    ax.set_title('R2: {:.3f}'.format(r2_score(real, predicted)))
-    plt.show()
-
-def z_plot_all(predicted, real, split=True):
+def z_plot(predicted, real, split=True):
     """
     Plots all predicted vs real values of Z
     :param predicted: list of lists of predicted values
@@ -59,24 +42,29 @@ def z_plot_all(predicted, real, split=True):
     """
     plt.style.use('ggplot')
     fig, ax = plt.subplots()
+    if not isinstance(predicted, list):
+        ax.plot(real, predicted, 'k.', alpha=0.5)
+        ax.plot([real.min(), real.max()], [real.min(), real.max()], 'r--')
+        overall_score = r2_score(real, predicted)
 
-    if split:
+    elif split:
         overall_score = []
         for i, (r, p) in enumerate(zip(real, predicted)):
             ax.plot(r, p, '.', alpha=0.5, label=f'Fold {i+1}')
             overall_score.append(r2_score(r, p))
             ax.plot([r.min(), r.max()], [r.min(), r.max()], 'r-')
+        ax.legend()
+        overall_score = np.mean(overall_score)
     else:
         real_all = [inner for outer in real for inner in outer]
         predicted_all = [inner for outer in predicted for inner in outer]
         ax.plot(real_all, predicted_all, 'k.', alpha=0.5)
-        overall_score = r2_score(real_all, predicted_all)
+        overall_score = np.mean(r2_score(real_all, predicted_all))
         ax.plot([min(real_all), max(real_all)], [min(real_all), max(real_all)], 'r--')
 
     ax.set_xlabel('Actual')
     ax.set_ylabel('Predicted')
-    ax.legend()
-    ax.set_title('R2: {:.3f}'.format(np.mean(overall_score)))
+    ax.set_title('R2: {:.3f}'.format(overall_score))
     plt.show()
 
 def find_best_features(df):
@@ -160,3 +148,20 @@ def series_to_supervised(data, n_in=1, n_out=1, drop_nan=True):
      if drop_nan:
         agg.dropna(inplace=True)
      return agg.transpose()
+
+def fit_model(model, x_train, y_train, x_test, y_test, epoc, name):
+    """
+    Fits a model to the training data and returns the predicted values
+    :param model: model to fit
+    :param x_train: training data
+    :param y_train: training labels
+    :param x_test: test features
+    :param y_test: test targets
+    :param epoc: number of epochs to train for
+    :param name: name of the model
+    :return: predicted values
+    """
+    model.fit(x_train, y_train, epochs=epoc)
+    y_hat = model.predict(x_test)
+    print(f"Model: {name} | R2: {r2_score(y_test, y_hat)}")
+    return y_hat

@@ -9,7 +9,7 @@ folds = KFold(n_splits=6)
 # mixed_precision.set_global_policy(policy)
 
 if __name__ == "__main__":
-    df = read_file_no(2)
+    df = read_all_files(1)
     df = normalize_df(df)
     df = df.sample(frac=1, random_state=1)
     features, target = get_features_and_target(df)
@@ -33,16 +33,11 @@ if __name__ == "__main__":
             optimizer=tf.keras.optimizers.Adam(0.001)
         )
 
-        model_lstm.fit(x_train, y_train, epochs=10, verbose=1)
+        y_hat = fit_model(model_lstm, x_train, y_train, x_test, y_test, epoc=10, name="LSTM")
 
-        y_hat = model_lstm.predict(x_test).flatten()
         predicted_overall.append(y_hat)
         real_overall.append(y_test)
-        score = r2_score(y_test, y_hat)
-        scores.append(score)
-        print("R square: %.3f" % score)
         # residuals_plot(y_hat, y_test)
-        # z_plot_comparison(y_hat, y_test)
 
-    z_plot_all(predicted_overall, real_overall)
+    z_plot(predicted_overall, real_overall)
     print(np.mean(scores))

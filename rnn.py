@@ -6,7 +6,7 @@ folds = KFold(n_splits=10)
 
 
 if __name__ == "__main__":
-    df = read_file_no(1)
+    df = read_all_files(1)
     features, target = get_features_and_target(df)
 
     scores = []

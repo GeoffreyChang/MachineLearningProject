@@ -16,6 +16,7 @@ def read_all_files(n=None):
     path = os.getcwd()
     path = os.path.join(path, "dataset/")
     csv_files = glob.glob(os.path.join(path, "*.csv"))
+    csv_files.sort(key=lambda i: int(os.path.splitext(os.path.basename(i))[0][8:]))
     if n:
         df = pd.read_csv(csv_files[n - 1])
         df.rename(columns={df.columns[0]: 'TIME', df.columns[1]: 'S'}, inplace=True)
@@ -35,7 +36,7 @@ def entire_dataset():
 
 def get_features_and_target(df):
     features, target = df.iloc[:,:-1], df["Z"]
-    features.drop(["TIME", "S"], axis=1, inplace=True)
+    features = features.drop(["TIME", "S"], axis=1)
     return features, target
 
 def z_plot(predicted, real, split=True):

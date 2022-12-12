@@ -4,7 +4,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import make_scorer
-from yellowbrick.regressor import ResidualsPlot
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,15 +13,15 @@ folds = KFold(n_splits=10)
 
 
 if __name__ == "__main__":
-    df = read_file_no(1)
+    df = read_all_files(1)
     df = (df - df.min()) / (df.max() - df.min())
     features, target = get_features_and_target(df)
     r_scores = []
     for train_index, test_index in folds.split(df):
-        x_train, x_test, y_train, y_test = features.iloc[[i for i in train_index]], \
-                                           features.iloc[[i for i in test_index]], \
-                                           target.iloc[[i for i in train_index]], \
-                                           target.iloc[[i for i in test_index]]
+        x_train, x_test, y_train, y_test = features.iloc[train_index], \
+                                           features.iloc[test_index], \
+                                           target.iloc[train_index], \
+                                           target.iloc[test_index]
         # X_train, X_test, Y_train, Y_test = train_test_split(features, target, test_size=0.3)
 
         # scaler = MinMaxScaler(feature_range=(0, 1))

@@ -4,7 +4,6 @@ from sklearn.metrics import r2_score
 import tensorflow as tf
 from tensorflow import keras
 from sklearn.model_selection import KFold
-from yellowbrick.regressor import ResidualsPlot
 from helper_functions import *
 
 import warnings
@@ -29,7 +28,7 @@ if __name__ == "__main__":
 
 
     # for df in files:
-    df = read_file_no(1)
+    df = read_all_files(1)
     df = normalize_df(df)
     best_features = find_best_features(df)
     # df = df[df.Z >= 9.5]
@@ -43,7 +42,7 @@ if __name__ == "__main__":
     real_overall = []
     for train_index, test_index in folds.split(features):
         x_train, x_test, y_train, y_test = features.iloc[train_index], \
-                                               features.iloc[test_index], \
+                                           features.iloc[test_index], \
                                            target.iloc[train_index], \
                                            target.iloc[test_index]
         history = dnn_model.fit(
@@ -52,16 +51,11 @@ if __name__ == "__main__":
             verbose=0,
             epochs=50)
 
-        y_hat = dnn_model.predict(x_test).flatten()
+        y_hat = fit_model(dnn_model, x_train, y_train, x_test, y_test, epoc=10, name="DNN")
+
         predicted_overall.append(y_hat)
         real_overall.append(y_test)
-        scores.append(r2_score(y_test, y_hat))
-        z_plot_comparison(y_hat, y_test)
+        # z_plot(y_hat, y_test)
 
-    for s in scores:
-        print("R square: %.3f" % s)
-    main_scores.append(np.mean(scores))
-    print("Average R square: %.3f" % np.mean(scores))
-    z_plot_all(predicted_overall, real_overall)
+    z_plot(predicted_overall, real_overall)
 
-    print("MAIN Average R square: %.3f" % np.mean(main_scores))

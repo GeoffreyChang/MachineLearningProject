@@ -8,7 +8,7 @@ plt.style.use('ggplot')
 
 
 if __name__ == "__main__":
-    df = read_file_no(1)
+    df = read_all_files(1)
     # df2 = read_file_no(2)
     df = df.sample(frac=1, random_state=12)
     features, target = get_features_and_target(df)
@@ -33,7 +33,7 @@ if __name__ == "__main__":
         score = r2_score(y_test, y_hat)
         print("R square: %.3f" % score)
         r_scores.append(score)
-        z_plot_comparison(y_hat, y_test)
+        z_plot(y_hat, y_test)
 
         # Residuals Plot
         # plt.figure(figsize=(10, 6))

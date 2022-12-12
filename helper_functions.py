@@ -7,30 +7,36 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score
 import seaborn as sns
 
-def read_all_files():
+def read_all_files(n=None):
+    """
+        Plots all predicted vs real values of Z
+        :param n: optinal file no to read
+        :return: df: returns respective pandas dataframe
+        """
     path = os.getcwd()
     path = os.path.join(path, "dataset/")
-    excel_files = glob.glob(os.path.join(path, "*.xlsx"))
-    main_df = []
-    for f in excel_files:
-        df = pd.read_excel(f)
+    csv_files = glob.glob(os.path.join(path, "*.csv"))
+    if n:
+        df = pd.read_csv(csv_files[n - 1])
         df.rename(columns={df.columns[0]: 'TIME', df.columns[1]: 'S'}, inplace=True)
-        main_df.append(df)
-    return main_df
+        return df
+    df = []
+    for f in csv_files:
+        try:
+            data = pd.read_csv(f)
+            data.rename(columns={data.columns[0]: 'TIME', data.columns[1]: 'S'}, inplace=True)
+            df.append(data)
+        except ValueError:
+            pass
+    return df
+
 def entire_dataset():
     return pd.concat(read_all_files())
 
 def get_features_and_target(df):
     features, target = df.iloc[:,:-1], df["Z"]
+    features.drop(["TIME", "S"], axis=1, inplace=True)
     return features, target
-
-def read_file_no(n):
-    path = os.getcwd()
-    path = os.path.join(path, "dataset/")
-    excel_files = glob.glob(os.path.join(path, "*.xlsx"))
-    df = pd.read_excel(excel_files[n-1])
-    df.rename(columns={df.columns[0]: 'TIME', df.columns[1]: 'S'}, inplace=True)
-    return df
 
 def z_plot(predicted, real, split=True):
     """
@@ -126,7 +132,6 @@ def series_to_supervised(data, n_in=1, n_out=1, drop_nan=True):
      Returns:
      Pandas DataFrame of series framed for supervised learning.
      """
-     data = data.transpose()
      n_vars = 1 if type(data) is list else data.shape[1]
      df = pd.DataFrame(data)
      cols, names = list(), list()
@@ -147,7 +152,7 @@ def series_to_supervised(data, n_in=1, n_out=1, drop_nan=True):
      # drop rows with NaN values
      if drop_nan:
         agg.dropna(inplace=True)
-     return agg.transpose()
+     return agg
 
 def fit_model(model, x_train, y_train, x_test, y_test, epoc, name):
     """

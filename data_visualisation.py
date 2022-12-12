@@ -74,6 +74,18 @@ def heatmap(df, title, save_fig):
         plt.show()
     plt.close()
 
+def plot_histogram(df):
+    features, targets = get_features_and_target(df)
+
+    features = features.drop(["TIME", "S"], axis=1)
+    for f in features:
+        plt.figure()
+        plt.title(f)
+        sns.distplot(features[f], fit=stats.norm)
+        plt.show()
+        plt.close()
+    # plt.hist(features)
+    # plt.show()
 
 if __name__ == "__main__":
     # Plot style
@@ -82,7 +94,7 @@ if __name__ == "__main__":
     save_plots = False
     # plot individual datasets or entire dataset
     individual = True
-
+    # plot_histogram(read_file_no(2))
     if individual:
         files = read_all_files()
         for k, data in enumerate(files):

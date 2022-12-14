@@ -65,7 +65,7 @@ def z_plot(predicted, real, split=True):
     else:
         real_all = [inner for outer in real for inner in outer]
         predicted_all = [inner for outer in predicted for inner in outer]
-        ax.plot(real_all, predicted_all, 'k.', alpha=0.3)
+        ax.plot(real_all, predicted_all, 'k.', alpha=0.1)
         overall_score = np.mean(r2_score(real_all, predicted_all))
         ax.plot([min(real_all), max(real_all)], [min(real_all), max(real_all)], 'r--')
 

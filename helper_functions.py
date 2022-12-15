@@ -110,7 +110,8 @@ def find_best_features(df):
     return selected_features
 
 def normalize_df(df):
-    return (df - df.min()) / (df.max() - df.min())
+    df_norm = (df - df.min()) / (df.max() - df.min())
+    return df_norm
 
 def residuals_plot(predicted, real):
     plt.style.use('ggplot')

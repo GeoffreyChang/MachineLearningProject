@@ -1,11 +1,11 @@
 import os
 import glob
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score
 import seaborn as sns
+from keras.metrics import RootMeanSquaredError
 
 def read_all_files(n=None):
     """
@@ -49,29 +49,38 @@ def z_plot(predicted, real, split=True):
     """
     plt.style.use('ggplot')
     fig, ax = plt.subplots()
+    rmse_metric = RootMeanSquaredError()
+    overall_score = []
+    total_rmse = []
     if not isinstance(predicted, list):
         ax.plot(real, predicted, 'k.', alpha=0.5)
         ax.plot([real.min(), real.max()], [real.min(), real.max()], 'r--')
         overall_score = r2_score(real, predicted)
-
-    elif split:
-        overall_score = []
-        for i, (r, p) in enumerate(zip(real, predicted)):
-            ax.plot(r, p, '.', alpha=0.5, label=f'Fold {i+1}')
-            overall_score.append(r2_score(r, p))
-            ax.plot([r.min(), r.max()], [r.min(), r.max()], 'r-')
-        ax.legend()
-        overall_score = np.mean(overall_score)
+        rmse_metric.update_state(y_true=real, y_pred=predicted)
+        total_rmse.append(rmse_metric.result().numpy())
     else:
+        if split:
+            marker_col = '.'
+        else:
+            marker_col = 'k.'
+
+        for i, (r, p) in enumerate(zip(real, predicted)):
+            ax.plot(r, p, marker_col, alpha=0.1, label=f'Fold {i+1}')
+            overall_score.append(r2_score(r, p))
+            rmse_metric.update_state(y_true=r, y_pred=p)
+            total_rmse.append(rmse_metric.result().numpy())
+
+        if split:
+            ax.legend()
+
         real_all = [inner for outer in real for inner in outer]
-        predicted_all = [inner for outer in predicted for inner in outer]
-        ax.plot(real_all, predicted_all, 'k.', alpha=0.1)
-        overall_score = np.mean(r2_score(real_all, predicted_all))
         ax.plot([min(real_all), max(real_all)], [min(real_all), max(real_all)], 'r--')
 
+    overall_score = np.mean(overall_score)
+    overall_rmse = np.mean(total_rmse)
     ax.set_xlabel('Actual')
     ax.set_ylabel('Predicted')
-    ax.set_title('R2: {:.3f}'.format(overall_score))
+    ax.set_title('R^2: {:.3f}   |   RMSE: {:.3f}'.format(overall_score, overall_rmse))
     plt.show()
 
 def find_best_features(df):

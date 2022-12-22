@@ -35,8 +35,11 @@ def entire_dataset():
     return pd.concat(read_all_files())
 
 def get_features_and_target(df):
-    features, target = df.iloc[:,:-1], df["Z"]
-    features = features.drop(["TIME", "S"], axis=1)
+    try:
+        df = df.drop(["TIME", "S"], axis=1)
+    except KeyError:
+        pass
+    features, target = df.iloc[:, :-1], df["Z"]
     return features, target
 
 def z_plot(predicted, real, split=True):
@@ -125,9 +128,17 @@ def normalize_df(df):
 def residuals_plot(predicted, real):
     plt.style.use('ggplot')
     fig, ax = plt.subplots()
-    residual = predicted - real
-    sns.residplot(x = predicted, y = residual, data = None, scatter_kws={'color': 'r',
-   'alpha': 0.5}, ax=ax)
+
+    if not isinstance(predicted, list):
+        residual = predicted - real
+        sns.residplot(x = predicted, y = residual, data = None, scatter_kws={'color': 'k',
+       'alpha': 0.1}, ax=ax)
+    else:
+        for i, (r, p) in enumerate(zip(real, predicted)):
+            residual = p - r
+            sns.residplot(x = p, y = residual, data = None, scatter_kws={'color': 'k',
+           'alpha': 0.1}, ax=ax)
+
     ax.set_xlabel('Predicted Value')
     ax.set_ylabel('Residuals')
     plt.show()

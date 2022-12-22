@@ -4,7 +4,7 @@ from helper_functions import *
 import numpy as np
 from sklearn.model_selection import KFold
 from keras.models import Sequential
-from keras.layers import LSTM, Dense, Bidirectional
+from keras.layers import GRU, Dense, Bidirectional
 from keras import metrics
 import multiprocessing
 from itertools import repeat, chain
@@ -24,7 +24,7 @@ def run_cv_fold(feat, targ, train_index, test_index):
     y_tra, y_val = targ[train_index],   targ[test_index]
     clear_session()
     model_run = Sequential()
-    model_run.add(Bidirectional(LSTM(64, input_shape=(feat[0].shape[0], feat[0].shape[1]))))  # 64 units in the LSTM layer
+    model_run.add(Bidirectional(GRU(64, input_shape=(feat[0].shape[0], feat[0].shape[1]))))  # 64 units in the LSTM layer
     model_run.add(Dense(1))  # output layer with one unit
     model_run.compile(
         loss='mean_squared_error',
@@ -104,13 +104,13 @@ def main():
         total_rmse.append(rmse_metric.result().numpy())
 
     print("--------------------------------------")
-    print('Average scores for all folds after denormilisation:')
-    print(f'Mean R^2: {np.mean(total_r2)}')
-    print(f'Mean RMSE: {np.mean(total_rmse)}')
+    print('Average scores for all folds:')
+    print(f'Mean R^2 After Denormilisation: {np.mean(total_r2)}')
+    print(f'Mean RMSE Before Denormilisation: {np.mean(total_rmse)}')
     print("--------------------------------------")
 
     # Plot the predicted vs real values
     z_plot(predicted_overall, real_overall, split=False)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

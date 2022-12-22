@@ -7,75 +7,101 @@ from helper_functions import *
 import numpy as np
 import tensorflow as tf
 from keras.backend import clear_session
-n_pools = multiprocessing.cpu_count()
+from itertools import chain
 
-folds = KFold(n_splits=6)
-# from keras import mixed_precision
-# policy = mixed_precision.Policy('mixed_float16')
-# mixed_precision.set_global_policy(policy)
+n_pools = multiprocessing.cpu_count()
+epoch = 100
+batch_no = 16
+kfold_splits = 10
 
 
 def run_cv_fold(feat, targ, train_index, test_index):
-    # split the data into training and testing sets for this fold
     x_tra , x_val = feat.iloc[train_index], feat.iloc[test_index]
     y_tra, y_val = targ.iloc[train_index], targ.iloc[test_index]
 
+    x_tra = np.array(x_tra)
+    x_val = np.array(x_val)
+
+    x_tra = np.reshape(x_tra, (x_tra.shape[0], 1, x_tra.shape[1]))
+    x_val = np.reshape(x_val, (x_val.shape[0], 1, x_val.shape[1]))
     clear_session()
     model_run = tf.keras.Sequential()
-    model_run.add(tf.keras.layers.LSTM(64, input_shape=(feat.shape[1], 1)))
-    model_run.add(tf.keras.layers.Dense(64, activation='relu'))
-    model_run.add(tf.keras.layers.Dense(64))
+    model_run.add(tf.keras.layers.LSTM(64, input_shape=(x_tra.shape[1], x_tra.shape[2])))
     model_run.add(tf.keras.layers.Dense(1))
     model_run.compile(
-        loss='mean_absolute_error',
+        loss='mean_squared_error',
         metrics=[metrics.RootMeanSquaredError()],
         optimizer=tf.keras.optimizers.Adam(0.001)
     )
 
     # evaluate the model on the test data
-    model_run.fit(x_tra, y_tra, epochs=30, batch_size=16, verbose=1)
+    model_run.fit(x_tra, y_tra, epochs=epoch, batch_size=batch_no, verbose=0)
+
     Y_hat = model_run.predict(x_val)
     return Y_hat, y_val
 
 
-if __name__ == "__main__":
-    # df = read_all_files(1)
-    df = read_all_files()
-    df.pop(9)
-    df.pop(5)
-    df = pd.concat(df)
-    df = df.drop(["TIME", "S"], axis=1)
-    df = normalize_df(df)
-    # df = df.sample(frac=1, random_state=1)
-    # features, target = get_features_and_target(df)
-    df = df.dropna()
-    features, target = df.iloc[:, :-1], df["Z"]
-    # features = normalize_df(features)
-    scores = []
+def main():
+    separate = False
+
+    if separate:
+        df = read_all_files(1)
+        df_norm = normalize_df(df)
+        features, target = get_features_and_target(df_norm)
+    else:
+        df = read_all_files()
+        df.pop(9) # remove the 10th file due to missing data
+        df.pop(5) # remove the 6th file due to extremely high values
+        df = pd.concat(df)
+        df = df.drop(["TIME", "S"], axis=1)
+        df.dropna(inplace=True)
+        scaler = MinMaxScaler()
+        df_norm = pd.DataFrame(scaler.fit_transform(df), columns=df.columns)
+        df_norm.reset_index(drop=True, inplace=True)
+        features, target = get_features_and_target(df_norm)
+
+
+    # use k-fold cross validation to evaluate the model
+    kfold = KFold(n_splits=kfold_splits, shuffle=True, random_state=42)
+
+    # run the model for each fold as a multiprocessing task
+    a, b = [train_ind for train_ind, _ in kfold.split(features)], [val_ind for _, val_ind in kfold.split(features)]
+    with multiprocessing.Pool(n_pools) as pool:
+        result = pool.starmap(run_cv_fold, zip(repeat(features), repeat(target), a, b))
+
+    total_rmse = []
+    total_r2 = []
     predicted_overall = []
     real_overall = []
-
-    kfold = KFold(n_splits=7, shuffle=True, random_state=1)  # use 7-fold cross validation
-    a = []
-    b = []
-    for train_ind, val_ind in kfold.split(features):
-        a.append(train_ind)
-        b.append(val_ind)
-
-    a, b = [train_ind for train_ind, _ in kfold.split(features)], [val_ind for _, val_ind in kfold.split(features)]
-
-    result = multiprocessing.Pool(n_pools).starmap(run_cv_fold, zip(repeat(features), repeat(target), a, b))
-
     for predic, real in result:
+
+        # Denormalise the z-axis displacement
+        predic = np.array(list(chain.from_iterable(predic)))
+        predic = (pd.DataFrame(predic, columns=["Z"]) * (df.max() - df.min()) + df.min())["Z"]
+        real = np.array(real)
+        real = (pd.DataFrame(real, columns=["Z"]) * (df.max() - df.min()) + df.min())["Z"]
+
+        # Append to overall list for plotting
         predicted_overall.append(predic)
         real_overall.append(real)
 
-    # calculate the mean squared error
-    total_rmse = []
-    for i in range(len(predicted_overall)):
-        rmse = tf.sqrt(tf.reduce_mean(tf.math.squared_difference(predicted_overall[i], real_overall[i])))
-        # print('Fold %d: %.3f' % (i + 1, rmse))
-        total_rmse.append(rmse)
-    print('Mean RMSE: %.3f' % np.mean(total_rmse))
+        # Calculate R^2 score
+        r2 = r2_score(real, predic)
+        total_r2.append(r2)
 
-    z_plot(predicted_overall, real_overall, False)
+        # Calculate RMSE
+        rmse_metric = tf.keras.metrics.RootMeanSquaredError()
+        rmse_metric.update_state(y_true=real, y_pred=predic)
+        total_rmse.append(rmse_metric.result().numpy())
+
+    print("--------------------------------------")
+    print('Average scores for all folds:')
+    print(f'Mean R^2 After Denormilisation: {np.mean(total_r2)}')
+    print(f'Mean RMSE Before Denormilisation: {np.mean(total_rmse)}')
+    print("--------------------------------------")
+
+    # Plot the predicted vs real values
+    z_plot(predicted_overall, real_overall, split=False)
+
+if __name__ == "__main__":
+    main()

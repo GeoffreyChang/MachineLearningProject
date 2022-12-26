@@ -42,16 +42,22 @@ def get_features_and_target(df):
     features, target = df.iloc[:, :-1], df["Z"]
     return features, target
 
-def z_plot(predicted, real, split=True):
+def z_plot(predicted, real, no_epochs=None, batch_no=None, no_kfold=None, split=False):
     """
     Plots all predicted vs real values of Z
     :param predicted: list of lists of predicted values
     :param real: list of lists of true values
+    :param title: title of the plot
+    :param no_kfold: number of kfold splits
+    :param batch_no: batch size used
+    :param no_epochs: number of epochs used
     :param split: if True, plots each k-fold separately
     :return: None
     """
     plt.style.use('ggplot')
     fig, ax = plt.subplots()
+    fig.set_figheight(7)
+    fig.set_figwidth(10)
     rmse_metric = RootMeanSquaredError()
     overall_score = []
     total_rmse = []
@@ -81,9 +87,18 @@ def z_plot(predicted, real, split=True):
 
     overall_score = np.mean(overall_score)
     overall_rmse = np.mean(total_rmse)
+    fig_text = f"R^2: {overall_score:.3f}\n" \
+               f"RMSE: {overall_rmse:.3f}"
+    fig.text(0.14, 0.81, fig_text, fontsize=12)
+
+    more_info = f"Epochs = {no_epochs}\n" \
+               f"Batch Size = {batch_no}\n" \
+               f"K-Folds = {no_kfold}"
+    fig.text(0.74, 0.13, more_info, fontsize=12)
+
     ax.set_xlabel('Actual')
     ax.set_ylabel('Predicted')
-    ax.set_title('R^2: {:.3f}   |   RMSE: {:.3f}'.format(overall_score, overall_rmse))
+    ax.set_title(f'Comparing Predicted and Measured Z-Axis Displacement')
     plt.show()
 
 def find_best_features(df):

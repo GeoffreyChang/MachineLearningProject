@@ -33,7 +33,7 @@ def run_cv_fold(feat, targ, train_index, test_index, epoch, batch_no):
     # Reset the Keras session
     clear_session()
 
-    # Build the LSTM model
+    # Build the GRU model
     model_run = tf.keras.Sequential()
     model_run.add(tf.keras.layers.GRU(64, input_shape=(x_tra.shape[1], x_tra.shape[2])))
     model_run.add(tf.keras.layers.Dense(1))
@@ -97,6 +97,7 @@ def main(epoch, batch_no, kfold_splits):
         rmse_metric.update_state(y_true=real, y_pred=predic)
         total_rmse.append(rmse_metric.result().numpy())
 
+    # print the results
     print("--------------------------------------")
     print('Average scores for all folds:')
     print(f'Mean R^2 After Denormilisation: {np.mean(total_r2)}')

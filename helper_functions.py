@@ -9,10 +9,17 @@ from keras.metrics import RootMeanSquaredError
 
 def read_all_files(n=None):
     """
-        Plots all predicted vs real values of Z
-        :param n: optinal file no to read
-        :return: df: returns respective pandas dataframe
-        """
+    Reads in all CSV files in the "dataset" directory and returns a list of pandas DataFrames.
+
+    If the optional parameter n is specified, only the n-th CSV file will be read and returned as a single DataFrame.
+
+    Args:
+        n: Optional file number to read (if specified, only this file will be read and returned).
+
+    Returns:
+        list of pandas DataFrames or a single DataFrame (if n is specified).
+    """
+
     path = os.getcwd()
     path = os.path.join(path, "dataset/")
     csv_files = glob.glob(os.path.join(path, "*.csv"))
@@ -32,6 +39,12 @@ def read_all_files(n=None):
     return df
 
 def entire_dataset():
+    """
+    Returns a single pandas DataFrame containing all the data from the CSV files in the "dataset" directory.
+
+    Returns:
+        pandas DataFrame: A DataFrame containing all the data from the CSV files.
+    """
     return pd.concat(read_all_files())
 
 def get_features_and_target(df):
@@ -42,28 +55,43 @@ def get_features_and_target(df):
     features, target = df.iloc[:, :-1], df["Z"]
     return features, target
 
-def z_plot(predicted, real, no_epochs=None, batch_no=None, no_kfold=None, split=False):
+def z_plot(predicted, real, no_epochs=0, batch_no=0, no_kfold=0, split=False, save_fig=""):
     """
-    Plots all predicted vs real values of Z
-    :param predicted: list of lists of predicted values
-    :param real: list of lists of true values
-    :param title: title of the plot
-    :param no_kfold: number of kfold splits
-    :param batch_no: batch size used
-    :param no_epochs: number of epochs used
-    :param split: if True, plots each k-fold separately
-    :return: None
+    Plots the predicted and real values of the Z-axis displacement.
+
+    Args:
+        predicted (panda series or list of panda series): The predicted Z-axis displacement values. If a list is
+            provided, each element of the list represents the predicted values for each fold of a cross-validation procedure.
+        real (panda series or list of panda series): The real Z-axis displacement values. If a list is provided, each
+            element of the list represents the real values for each fold of a cross-validation procedure.
+        no_epochs (int, optional): The number of epochs used in the model training.
+        batch_no (int, optional): The batch size used in the model training.
+        no_kfold (int, optional): The number of folds used in the cross-validation procedure.
+        split (bool, optional): Whether to show separate plots for each fold of the cross-validation procedure.
+            Default is False.
+        save_fig (str, optional): The file path to save the plot. If not provided, the plot will be displayed on the
+            screen.
+
+    Returns:
+        None
     """
     plt.style.use('ggplot')
     fig, ax = plt.subplots()
     fig.set_figheight(7)
     fig.set_figwidth(10)
-    rmse_metric = RootMeanSquaredError()
+
     overall_score = []
     total_rmse = []
-    if not isinstance(predicted, list):
+    ll = False
+    try:
+        predicted[0][0]
+    except IndexError:
+        ll = True
+
+    if ll:
+        rmse_metric = RootMeanSquaredError()
         ax.plot(real, predicted, 'k.', alpha=0.5)
-        ax.plot([real.min(), real.max()], [real.min(), real.max()], 'r--')
+        ax.plot([min(real), max(real)], [min(real), max(real)], 'r--')
         overall_score = r2_score(real, predicted)
         rmse_metric.update_state(y_true=real, y_pred=predicted)
         total_rmse.append(rmse_metric.result().numpy())
@@ -74,6 +102,7 @@ def z_plot(predicted, real, no_epochs=None, batch_no=None, no_kfold=None, split=
             marker_col = 'k.'
 
         for i, (r, p) in enumerate(zip(real, predicted)):
+            rmse_metric = RootMeanSquaredError()
             ax.plot(r, p, marker_col, alpha=0.1, label=f'Fold {i+1}')
             overall_score.append(r2_score(r, p))
             rmse_metric.update_state(y_true=r, y_pred=p)
@@ -99,9 +128,25 @@ def z_plot(predicted, real, no_epochs=None, batch_no=None, no_kfold=None, split=
     ax.set_xlabel('Actual')
     ax.set_ylabel('Predicted')
     ax.set_title(f'Comparing Predicted and Measured Z-Axis Displacement')
-    plt.show()
+    if save_fig != "":
+        if not os.path.isdir(f"graphs/z_plots/{save_fig}"):
+            os.makedirs(f"graphs/z_plots/{save_fig}")
+        plt.savefig("graphs/z_plots/" + save_fig + f"/epochs{no_epochs}_batch{batch_no}_kfolds{no_kfold}.png")
+        plt.close()
+    else:
+        plt.show()
+        plt.close()
 
 def find_best_features(df):
+    """
+    Finds the most highly correlated features with the Z-axis displacement in the input DataFrame.
+
+    Args:
+        df (pandas DataFrame): The DataFrame containing the features and the Z-axis displacement.
+
+    Returns:
+        list: A list of strings of the most highly correlated features with the Z-axis displacement.
+    """
     try:
         df = df.drop(["TIME", "S"], axis=1)
     except KeyError:
@@ -137,10 +182,31 @@ def find_best_features(df):
     return selected_features
 
 def normalize_df(df):
+    """
+    Normalizes the values in the input DataFrame.
+
+    Args:
+        df (pandas DataFrame): The DataFrame to be normalized.
+
+    Returns:
+        pandas DataFrame: The normalized DataFrame.
+    """
     df_norm = (df - df.min()) / (df.max() - df.min())
     return df_norm
 
 def residuals_plot(predicted, real):
+    """
+    Plots the residuals (prediction errors) for the predicted and real values.
+
+    Args:
+        predicted (float or list): The predicted values. If a list is provided, each element of the list represents the
+            predicted values for each fold of a cross-validation procedure.
+        real (float or list): The real values. If a list is provided, each element of the list represents the real values
+            for each fold of a cross-validation procedure.
+
+    Returns:
+        None
+    """
     plt.style.use('ggplot')
     fig, ax = plt.subplots()
 

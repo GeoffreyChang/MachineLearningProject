@@ -6,6 +6,7 @@ from keras.backend import clear_session
 from sklearn.model_selection import KFold, TimeSeriesSplit
 from tensorflow import keras
 from helper_functions import *
+import time
 warnings.simplefilter(action='ignore', category=FutureWarning)
 n_pools = multiprocessing.cpu_count()
 
@@ -56,6 +57,7 @@ def main(epoch, batch_no, kfold_splits):
 
     # run the model for each fold as a multiprocessing task
     a, b = [train_ind for train_ind, _ in kfold.split(features)], [val_ind for _, val_ind in kfold.split(features)]
+    start_time = time.time()
     with multiprocessing.Pool(n_pools) as pool:
         result = pool.starmap(run_cv_fold, zip(repeat(features), repeat(target), a, b, repeat(epoch), repeat(batch_no)))
 
@@ -83,17 +85,18 @@ def main(epoch, batch_no, kfold_splits):
         rmse_metric.update_state(y_true=real, y_pred=predic)
         total_rmse.append(rmse_metric.result().numpy())
 
-    # print the results
+    total_time = time.time() - start_time
     print("--------------------------------------")
-    print('Average scores for all folds:')
+    print('Average scores for all folds after denormilisation:')
+    print(f"Total Time: {total_time} seconds")
     print(f'Mean R^2: {np.mean(total_r2)}')
     print(f'Mean RMSE: {np.mean(total_rmse)}')
     print("--------------------------------------")
-
+    record_results(__file__, np.mean(total_rmse), np.mean(total_r2), epoch, batch_no, kfold_splits, total_time)
     # plot the results
-    z_plot(predicted_overall, real_overall, no_epochs=epoch, batch_no=batch_no, no_kfold=kfold_splits,
-           split=False, save_fig=__file__.split("\\")[-1][:-3])
+    # z_plot(predicted_overall, real_overall, no_epochs=epoch, batch_no=batch_no, no_kfold=kfold_splits,
+           # split=False, save_fig=__file__.split("\\")[-1][:-3])
 
 
 if __name__ == '__main__':
-    main(epoch=100, batch_no=16, kfold_splits=10)
+    main(epoch=2, batch_no=128, kfold_splits=2)

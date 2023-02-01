@@ -10,6 +10,7 @@ import multiprocessing
 from itertools import repeat, chain
 import warnings
 from keras.backend import clear_session
+import time
 warnings.filterwarnings("ignore", category=FutureWarning)
 n_pools = multiprocessing.cpu_count()
 
@@ -36,7 +37,6 @@ def run_cv_fold(feat, targ, train_index, test_index, epoch, batch_no):
 
 
 def main(epoch, batch_no, kfold_splits, window_size):
-
     df = read_all_files()
     df.pop(9)  # remove the 10th file due to missing data
     df.pop(5)  # remove the 6th file due to extremely high values
@@ -67,6 +67,7 @@ def main(epoch, batch_no, kfold_splits, window_size):
     kfold = KFold(n_splits=kfold_splits, shuffle=True, random_state=1)  # use 7-fold cross validation
 
     a, b = [train_ind for train_ind, _ in kfold.split(X_seq)], [val_ind for _, val_ind in kfold.split(X_seq)]
+    start_time = time.time()
     with multiprocessing.Pool(n_pools) as pool:
         result = pool.starmap(run_cv_fold, zip(repeat(X_seq), repeat(y_seq), a, b, repeat(epoch), repeat(batch_no)))
 
@@ -94,15 +95,17 @@ def main(epoch, batch_no, kfold_splits, window_size):
         rmse_metric.update_state(y_true=real, y_pred=predic)
         total_rmse.append(rmse_metric.result().numpy())
 
+    total_time = time.time() - start_time
     print("--------------------------------------")
-    print('Average scores for all folds:')
-    print(f'Mean R^2 After Denormilisation: {np.mean(total_r2)}')
-    print(f'Mean RMSE Before Denormilisation: {np.mean(total_rmse)}')
+    print('Average scores for all folds after denormilisation:')
+    print(f"Total Time: {total_time} seconds")
+    print(f'Mean R^2: {np.mean(total_r2)}')
+    print(f'Mean RMSE: {np.mean(total_rmse)}')
     print("--------------------------------------")
+    record_results(__file__, np.mean(total_rmse), np.mean(total_r2), epoch, batch_no, kfold_splits, total_time)
 
     # Plot the predicted vs real values
-
-    z_plot(predicted_overall, real_overall, no_epochs=epoch, batch_no=batch_no, no_kfold=kfold_splits,
-           split=False, save_fig=__file__.split("\\")[-1][:-3])
+    # z_plot(predicted_overall, real_overall, no_epochs=epoch, batch_no=batch_no, no_kfold=kfold_splits,
+    #        split=False, save_fig=__file__.split("\\")[-1][:-3])
 if __name__ == '__main__':
     main(epoch=10, batch_no=64, kfold_splits=10, window_size=4)

@@ -224,3 +224,12 @@ def residuals_plot(predicted, real):
     ax.set_ylabel('Residuals')
     plt.show()
 
+def record_results(file_name, rmse, r2, epoch, batch, kfolds, time_taken):
+    file_name = file_name.split('\\')[-1][:-3]
+    if not os.path.isdir(f"graphs/z_plots/{file_name}"):
+        os.makedirs(f"graphs/z_plots/{file_name}")
+    f = open(f"graphs/z_plots/{file_name}/{file_name}_results.txt", "a+")
+    if os.stat(f"graphs/z_plots/{file_name}/{file_name}_results.txt").st_size == 0:
+        f.write("RMSE, R2, EPOCH, BATCH, K-FOLD, TIME_TAKEN\n")
+    f.write(f"{rmse}, {r2}, {epoch}, {batch}, {kfolds}, {time_taken}\n")
+    f.close()

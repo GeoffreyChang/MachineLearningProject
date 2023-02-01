@@ -13,27 +13,39 @@ folds = KFold(n_splits=10)
 
 
 if __name__ == "__main__":
-    df = read_all_files(1)
-    df = (df - df.min()) / (df.max() - df.min())
-    features, target = get_features_and_target(df)
-    r_scores = []
-    for train_index, test_index in folds.split(df):
+    separate = False
+
+    if separate:
+        df = read_all_files(1)
+        df_norm = normalize_df(df)
+        features1, target1 = get_features_and_target(df)
+        features, target = get_features_and_target(df_norm)
+    else:
+        df = read_all_files()
+        df.pop(9)
+        df.pop(5)
+        df = pd.concat(df)
+        df = df.sample(frac=1, random_state=12)
+        df = df.drop(["TIME", "S"], axis=1)
+        df_norm = normalize_df(df)
+        df_norm = df_norm.dropna()
+        features, target = df_norm.iloc[:, :-1], df_norm["Z"]
+
+    predicted_overall = []
+    real_overall = []
+    for train_index, test_index in folds.split(df_norm):
         x_train, x_test, y_train, y_test = features.iloc[train_index], \
                                            features.iloc[test_index], \
                                            target.iloc[train_index], \
                                            target.iloc[test_index]
-        # X_train, X_test, Y_train, Y_test = train_test_split(features, target, test_size=0.3)
 
-        # scaler = MinMaxScaler(feature_range=(0, 1))
-        # X_train = scaler.fit_transform(X_train)
-        # X_train = pd.DataFrame(X_train)
-        # X_test = scaler.fit_transform(X_test)
-        # X_test = pd.DataFrame(X_test)
-
-        # regressor = SVR(kernel='rbf')
-        # regressor.fit(X_train, Y_train)
-        # regressor.score(X_test, Y_test)
-
+        model = SVR(kernel='rbf')
+        model.fit(x_train, y_train)
+        # Testing
+        y_hat = model.predict(x_test)
+        predicted_overall.append(y_hat)
+        real_overall.append(y_test)
+        print("A")
         # Implement SVR with Hyper-Parameter Tuning
 
         # K = 15
@@ -52,14 +64,5 @@ if __name__ == "__main__":
         #     print("%0.3f (+/-%0.03f) for %r" % (mean, std * 2, params))
 
         # model = SVR(kernel='rbf', C=1000, gamma=0.9)
-        model = SVR(kernel='rbf')
-        model.fit(x_train, y_train)
-        score = model.score(x_test, y_test)
-        print(score)
-        r_scores.append(score)
-        # plt.figure(figsize=(10, 6))
-        # visualizer = ResidualsPlot(model)
-        # visualizer.fit(x_train, y_train)
-        # visualizer.score(x_test, y_test)
-        # visualizer.show()
-    print("AVERAGE:", np.mean(r_scores))
+
+    z_plot(predicted_overall, real_overall, split=False)
